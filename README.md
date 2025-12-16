@@ -35,7 +35,7 @@ FileShare - web-приложение для загрузки, хранения �
 fileshare/\
 ├── static/\
 │   ├── style.css\
-│   ├── script.js\
+│   └── script.js\
 ├── templates/\
 │   ├── download.html\
 │   └── index.html\
