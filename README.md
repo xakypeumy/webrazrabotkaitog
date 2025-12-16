@@ -32,16 +32,16 @@ FileShare - web-приложение для загрузки, хранения �
 - SQLite3 (встроен в Python от версии 3.8+)
 
 ### Структура проекта
-fileshare/
-├── static/
-│   ├── style.css
-│   ├── script.js
-├── templates/
-│   ├── download.html
-│   └── index.html
-├── uploads/
-├── files.db
-└── README.md
+fileshare/\
+├── static/\
+│   ├── style.css\
+│   ├── script.js\
+├── templates/\
+│   ├── download.html\
+│   └── index.html\
+├── uploads/\
+├── files.db\
+└── README.md\
 
 ### Задачи
 1. Drag-and-Drop ❌
