@@ -6,7 +6,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 DB_PATH = os.path.join(BASE_DIR, 'files.db')
 
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "txt", "pdf", "zip"}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "txt", "pdf", "zip", "dock"}
 MAX_FILE_SIZE = 20 * 1024 * 1024
 
 app = Flask(__name__)
@@ -37,6 +37,7 @@ init_db()
 def allowed_file(name):
     return '.' in name and name.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+#не сам
 def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest() if p else None
 
@@ -46,7 +47,7 @@ def index():
         file = request.files.get('file')
         if not file or not allowed_file(file.filename): abort(400)
 
-        fid = str(uuid.uuid4())
+        fid = str(uuid.uuid4()) #не сам
         name = secure_filename(file.filename)
         stored = f"{fid}_{name}"
         file.save(os.path.join(UPLOAD_FOLDER, stored))
