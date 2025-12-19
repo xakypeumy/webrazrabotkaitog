@@ -2,29 +2,22 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Файлообменник</title>
+    <title>FileShare</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="drop-zone" id="drop-zone">
-            <div class="drop-content">
-                <i class="fas fa-upload"></i>
-                <h2>Для загрузки файла перетащите его сюда</h2>
-                <p>или</p>
-                <button class="choose-files-btn">Выберите файл вручную</button>
-            </div>
-        </div>
-
-        <div class="upload-progress" style="display:none;">
-            <div class="progress-bar" id="progress-bar"></div>
-            <p id="progress-text"></p>
-        </div>
-
-        <input type="file" id="file-input" multiple style="display:none;">
-    </div>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<div class="container">
+    <h1>FileShare</h1>
+<form method="post" enctype="multipart/form-data">
+    <div class="dropzone">Перетащите файл</div>
+    <input type="file" name="file" required>
+    <input type="password" name="password" placeholder="Пароль">
+    <input type="number" name="limit" placeholder="Лимит скачиваний">
+    <input type="number" name="expires" placeholder="Срок (часы)">
+    <button>Загрузить</button>
+</form>
+{% if link %}<p>Ссылка: <a href="{{ link }}">{{ link }}</a></p>{% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 </body>
 </html>

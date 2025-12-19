@@ -1,67 +1,92 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
-import os
+import os, sqlite3, uuid, hashlib, datetime
+from flask import Flask, request, redirect, url_for, send_from_directory, abort, render_template
 from werkzeug.utils import secure_filename
 
-connection = sqlite3.connect('fileshare.db', check_same_thread=False)
-cursor = connection.cursor()
-try:
-    cursor.execute('BEGIN')
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL
-    )
-    ''')
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    filename TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    file_type TEXT NOT NULL,
-    upload_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME,
-    password_protected BOOLEAN DEFAULT FALSE,
-    downloads_count INTEGER DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
-    )
-    ''')
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_id INTEGER NOT NULL,
-    link_token VARCHAR(64) UNIQUE NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (file_id) REFERENCES Files(file_id)
-    )
-    ''')
-    cursor.execute('COMMIT')
-except:
-    cursor.execute('ROLLBACK')
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+DB_PATH = os.path.join(BASE_DIR, 'files.db')
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "txt", "pdf", "zip", "dock"}
+MAX_FILE_SIZE = 20 * 1024 * 1024
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
-app.config['UPLOAD_FOLDER'] = 'Uploads'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# папка для загрузки
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def get_db():
+    return sqlite3.connect(DB_PATH)
+
+def init_db():
+    with get_db() as db:
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS files (
+            id TEXT PRIMARY KEY,
+            original_name TEXT,
+            stored_name TEXT,
+            password_hash TEXT,
+            max_downloads INTEGER,
+            downloads INTEGER DEFAULT 0,
+            expires_at TEXT
+        )
+        """)
+
+init_db()
+
+def allowed_file(name):
+    return '.' in name and name.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+#не сам
+def hash_password(p):
+    return hashlib.sha256(p.encode()).hexdigest() if p else None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if not file or not allowed_file(file.filename): abort(400)
+
+        fid = str(uuid.uuid4()) #не сам
+        name = secure_filename(file.filename)
+        stored = f"{fid}_{name}"
+        file.save(os.path.join(UPLOAD_FOLDER, stored))
+
+        expires = request.form.get('expires')
+        expires_at = (datetime.datetime.utcnow() + datetime.timedelta(hours=int(expires))).isoformat() if expires else None
+
+        with get_db() as db:
+            db.execute("INSERT INTO files VALUES (?,?,?,?,?,0,?)", (
+                fid, name, stored,
+                hash_password(request.form.get('password')),
+                request.form.get('limit'), expires_at
+            ))
+
+        return render_template('index.html', link=url_for('download', file_id=fid, _external=True))
+
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
-def upload_files():
+@app.route('/f/<file_id>', methods=['GET', 'POST'])
+def download(file_id):
+    with get_db() as db:
+        row = db.execute("SELECT * FROM files WHERE id=?", (file_id,)).fetchone()
 
+    if not row: abort(404)
 
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'gif', 'png', 'txt', 'pdf', 'gif')
+    _, orig, stored, pwd, limit, count, exp = row
+    if exp and datetime.datetime.utcnow() > datetime.datetime.fromisoformat(exp): abort(403)
+    if limit and count >= int(limit): abort(403)
+
+    if pwd:
+        if request.method == 'POST':
+            if hash_password(request.form.get('password')) != pwd: abort(403)
+        else:
+            return render_template('download.html')
+
+    with get_db() as db:
+        db.execute("UPDATE files SET downloads=downloads+1 WHERE id=?", (file_id,))
+
+    return send_from_directory(UPLOAD_FOLDER, stored, as_attachment=True, download_name=orig)
 
 if __name__ == '__main__':
     app.run(debug=True, host='192.168.1.13', port=5000)
