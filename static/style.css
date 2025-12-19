@@ -1,0 +1,64 @@
+/* Базовые стили для всего документа */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Контейнер для всех элементов интерфейса */
+.container {
+    text-align: center;
+    width: 300px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Стили для кнопки загрузки файла */
+.button {
+    background-color: green;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.button:hover {
+    background-color: darkgreen;
+}
+
+/* Стили для полей ввода данных */
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Стили для блока сгенерированной ссылки */
+.generated-link {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    text-align: center;
+}
+
+.generated-link a {
+    color: green;
+    text-decoration: none;
+}
+
+.generated-link a:hover {
+    text-decoration: underline;
+}
